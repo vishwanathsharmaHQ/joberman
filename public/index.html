@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Job - Home</title>
+    <script src="/components/navbar.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-top: 2rem;
+        }
+        .feature {
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .feature:last-child {
+            margin-bottom: 0;
+        }
+        .feature h2 {
+            color: #4CAF50;
+            margin-top: 0;
+        }
+        .feature a {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .feature a:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <nav-bar></nav-bar>
+    
+    <div class="container">
+        <h1>Find Your Dream Job</h1>
+        
+        <div class="feature">
+            <h2>Upload Your Resume</h2>
+            <p>Let our advanced AI analyze your resume and help you find the perfect job match.</p>
+            <a href="/upload.html">Upload Now</a>
+        </div>
+        
+        <div class="feature">
+            <h2>Job Recommendations</h2>
+            <p>Get personalized job recommendations based on your skills and experience.</p>
+            <a href="/jobs.html">View Jobs</a>
+        </div>
+        
+        <div class="feature">
+            <h2>Optimize Your Profile</h2>
+            <p>Learn how to improve your profile to attract more job opportunities.</p>
+            <a href="/profile.html">View Profile</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                window.location.href = '/upload.html';
+            }
+        });
+    </script>
+</body>
+</html> 

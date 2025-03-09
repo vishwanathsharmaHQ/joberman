@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Built files
+dist/
+
+# Uploaded files
+src/uploads/*
+!src/uploads/.gitkeep
+
+# Environment variables
+.env
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS specific files
+.DS_Store
+Thumbs.db 

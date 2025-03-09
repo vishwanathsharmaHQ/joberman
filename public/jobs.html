@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Analysis - Joberman</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="/components/navbar.js"></script>
+</head>
+
+<body class="bg-gray-100">
+    <nav-bar></nav-bar>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <div class="bg-white shadow rounded-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">Relevant Jobs</h2>
+            <div id="relevantJobs" class="space-y-4">
+            </div>
+        </div>
+
+        <div id="coverLetterModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-lg shadow-xl p-6 max-w-4xl w-full max-h-screen overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-900">Your Cover Letter</h3>
+                    <button id="closeCoverLetterModal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="coverLetterContent" class="prose max-w-none whitespace-pre-line">
+                </div>
+                <div class="mt-6 flex justify-between">
+                    <button id="copyToClipboard" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded">
+                        <i class="far fa-copy mr-2"></i> Copy to Clipboard
+                    </button>
+                    <button id="downloadCoverLetter" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded">
+                        <i class="fas fa-download mr-2"></i> Download as PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="jobAnalysisModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-lg shadow-xl p-6 max-w-4xl w-full max-h-screen overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-900">Job Analysis Results</h3>
+                    <button id="closeJobAnalysisModal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="analysisResults" class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Match Score</h3>
+                        <div class="mt-2 relative pt-1">
+                            <div class="flex mb-2 items-center justify-between">
+                                <div>
+                                    <span id="matchScore"
+                                        class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-200">
+                                        0%
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-200">
+                                <div id="matchScoreBar" style="width:0%"
+                                    class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Required Skills</h3>
+                        <div id="requiredSkills" class="mt-2 flex flex-wrap gap-2">
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Skill Gaps</h3>
+                        <div id="skillGaps" class="mt-2 flex flex-wrap gap-2">
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Recommendations</h3>
+                        <ul id="recommendations" class="mt-2 space-y-2">
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white shadow rounded-lg p-6">
+            <h2 class="text-2xl font-bold mb-4">Analysis History</h2>
+            <div id="analysisHistory" class="space-y-4">
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let user = null;
+        let originalResumeData = null;
+
+        async function getUser() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                console.log('No session ID found in localStorage, redirecting to upload page');
+                window.location.href = '/upload.html';
+                return;
+            }
+
+            try {
+                console.log('Fetching user profile with session ID:', sessionId);
+                const response = await fetch('/api/user/profile', {
+                    headers: {
+                        'session-id': sessionId
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        console.log('401 Unauthorized response from /api/user/profile');
+                        localStorage.removeItem('sessionId');
+                        localStorage.removeItem('userName');
+                        loadingEl.style.display = 'none';
+                        notLoggedInEl.style.display = 'block';
+                        return null;
+                    }
+
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('User profile data received:', data);
+                
+                if (!data.user) {
+                    console.error('Invalid user data structure: user object missing');
+                    return null;
+                }
+                
+                if (!data.user.id) {
+                    console.error('Invalid user data structure: user.id missing');
+                    return null;
+                }
+                
+                return data.user;
+            } catch (error) {
+                console.error('Error fetching user profile:', error);
+                return null;
+            }
+        }
+
+        async function loadRelevantJobs(userId) {
+            try {
+                const response = await fetch(`/api/jobs/relevant/${userId}`);
+                const data = await response.json();
+
+                const relevantJobs = document.getElementById('relevantJobs');
+                relevantJobs.innerHTML = '';
+
+                if (data.length === 0) {
+                    relevantJobs.innerHTML = '<p class="text-gray-500">No relevant jobs found. Please update your resume to get matched with jobs.</p>';
+                    return data;
+                }
+
+                data.forEach(job => {
+                    const jobCard = document.createElement('div');
+                    jobCard.className = 'bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow';
+                    
+                    const matchScore = job.matchScore || Math.floor(Math.random() * 100); // Fallback if no match score
+                    
+                    jobCard.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800">${job.title}</h3>
+                                <p class="text-gray-600 mb-2">${job.company} • ${job.location}</p>
+                                <div class="relative">
+                                    <p class="text-sm text-gray-500 mb-3 description-text" style="max-height: 3em; overflow: hidden; transition: max-height 0.3s ease-out;">
+                                        ${job.description ? job.description : 'Job description not available. Please visit the job posting for more details.'}
+                                    </p>
+                                    ${job.description ? `
+                                        <button class="text-blue-600 hover:text-blue-800 text-sm font-medium toggle-description">
+                                            Show More
+                                        </button>
+                                    ` : ''}
+                                </div>
+                                
+                                <div class="flex flex-wrap gap-2 mb-3">
+                                    ${job.skills ? job.skills.slice(0, 5).map(skill => 
+                                        `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${skill}</span>`
+                                    ).join('') : ''}
+                                    ${job.skills && job.skills.length > 5 ? `<span class="text-xs text-gray-500">+${job.skills.length - 5} more</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="bg-blue-100 text-blue-800 font-bold rounded-full px-3 py-1 text-sm">
+                                    ${matchScore}% Match
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">${job.posted ? `Posted ${job.posted}` : 'Recently posted'}</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
+                            <div>
+                                <button class="analyze-job-btn text-blue-600 hover:text-blue-800 text-sm font-medium mr-4" data-job-id="${job.id}">
+                                    Analyze Match
+                                </button>
+                                <button class="generate-cover-letter-btn text-green-600 hover:text-green-800 text-sm font-medium" data-job-id="${job.id}">
+                                    Generate Cover Letter
+                                </button>
+                            </div>
+                            <a href="${job.url || '#'}" target="_blank" class="text-gray-600 hover:text-gray-800 text-sm font-medium flex items-center">
+                                Apply <i class="fas fa-external-link-alt ml-1 text-xs"></i>
+                            </a>
+                        </div>
+                    `;
+                    
+                    const analyzeBtn = jobCard.querySelector('.analyze-job-btn');
+                    analyzeBtn.addEventListener('click', () => analyzeJob(job));
+                    
+                    const coverLetterBtn = jobCard.querySelector('.generate-cover-letter-btn');
+                    coverLetterBtn.addEventListener('click', () => generateCoverLetter(job));
+                    
+                    if (job.description) {
+                        const toggleBtn = jobCard.querySelector('.toggle-description');
+                        const descriptionText = jobCard.querySelector('.description-text');
+                        
+                        toggleBtn.addEventListener('click', () => {
+                            if (descriptionText.style.maxHeight === '3em') {
+                                descriptionText.style.maxHeight = 'none';
+                                toggleBtn.textContent = 'Show Less';
+                            } else {
+                                descriptionText.style.maxHeight = '3em';
+                                toggleBtn.textContent = 'Show More';
+                            }
+                        });
+                    }
+                    
+                    relevantJobs.appendChild(jobCard);
+                });
+
+                return data;
+            } catch (error) {
+                console.error('Error loading relevant jobs:', error);
+                const relevantJobs = document.getElementById('relevantJobs');
+                relevantJobs.innerHTML = '<p class="text-red-500">Error loading relevant jobs. Please try again later.</p>';
+                return null;
+            }
+        }
+
+        async function analyzeJob(job) {
+            console.log('Analyzing job:', job);
+            
+            try {
+                const jobAnalysisModal = document.getElementById('jobAnalysisModal');
+                const analysisResults = document.getElementById('analysisResults');
+                jobAnalysisModal.classList.remove('hidden');
+                
+                document.getElementById('closeJobAnalysisModal').addEventListener('click', () => {
+                    jobAnalysisModal.classList.add('hidden');
+                });
+                
+                analysisResults.innerHTML = `
+                    <div class="flex justify-center items-center p-10">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                        <p class="ml-3 text-gray-700">Analyzing job match...</p>
+                    </div>
+                `;
+                
+                if (!user || !user.id) {
+                    throw new Error('User not logged in');
+                }
+                
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    throw new Error('Session not found');
+                }
+                
+                const response = await fetch(`/api/jobs/analyze/${user.id}/${job.id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'session-id': sessionId
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const analysisData = await response.json();
+                console.log('Analysis data:', analysisData);
+                
+                analysisResults.innerHTML = `
+                    <!-- Match Score -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Match Score</h3>
+                        <div class="mt-2 relative pt-1">
+                            <div class="flex mb-2 items-center justify-between">
+                                <div>
+                                    <span id="matchScore"
+                                        class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-200">
+                                        ${analysisData.matchScore}%
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-200">
+                                <div id="matchScoreBar" style="width:${analysisData.matchScore}%"
+                                    class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Required Skills (Matched Skills) -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Required Skills</h3>
+                        <div id="requiredSkills" class="mt-2 flex flex-wrap gap-2">
+                            ${(() => {
+                                const matchedSkills = analysisData.analysis?.matchAnalysis?.matchedSkills || [];
+                                if (matchedSkills.length > 0) {
+                                    return matchedSkills
+                                        .map(skill => `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${skill}</span>`)
+                                        .join('');
+                                }
+                                return '<span class="text-gray-500">No required skills found</span>';
+                            })()}
+                        </div>
+                    </div>
+
+                    <!-- Skill Gaps -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Skill Gaps</h3>
+                        <div id="skillGaps" class="mt-2 flex flex-wrap gap-2">
+                            ${(() => {
+                                const skillGaps = analysisData.analysis?.matchAnalysis?.skillGaps || [];
+                                if (skillGaps.length > 0) {
+                                    return skillGaps
+                                        .map(skill => `<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">${skill}</span>`)
+                                        .join('');
+                                }
+                                return '<span class="text-gray-500">No skill gaps found</span>';
+                            })()}
+                        </div>
+                    </div>
+
+                    <!-- Experience Match -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Experience Match</h3>
+                        <div class="mt-2 p-4 bg-gray-50 rounded border border-gray-200">
+                            <p class="text-gray-700">${analysisData.analysis?.matchAnalysis?.experienceMatch || 'No experience match information available'}</p>
+                        </div>
+                    </div>
+
+                    <!-- Education Match -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Education Match</h3>
+                        <div class="mt-2 p-4 bg-gray-50 rounded border border-gray-200">
+                            <p class="text-gray-700">${analysisData.analysis?.matchAnalysis?.educationMatch || 'No education match information available'}</p>
+                        </div>
+                    </div>
+
+                    <!-- Strengths -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Strengths</h3>
+                        <ul class="mt-2 space-y-2">
+                            ${(() => {
+                                const strengths = analysisData.analysis?.matchAnalysis?.strengths || [];
+                                if (strengths.length > 0) {
+                                    return strengths
+                                        .map(strength => `
+                                            <li class="flex items-start">
+                                                <span class="text-green-500 mr-2"><i class="fas fa-check-circle"></i></span>
+                                                <span>${strength}</span>
+                                            </li>
+                                        `)
+                                        .join('');
+                                }
+                                return '<span class="text-gray-500">No strengths listed</span>';
+                            })()}
+                        </ul>
+                    </div>
+
+                    <!-- Weaknesses -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Areas for Improvement</h3>
+                        <ul class="mt-2 space-y-2">
+                            ${(() => {
+                                const weaknesses = analysisData.analysis?.matchAnalysis?.weaknesses || [];
+                                if (weaknesses.length > 0) {
+                                    return weaknesses
+                                        .map(weakness => `
+                                            <li class="flex items-start">
+                                                <span class="text-red-500 mr-2"><i class="fas fa-exclamation-circle"></i></span>
+                                                <span>${weakness}</span>
+                                            </li>
+                                        `)
+                                        .join('');
+                                }
+                                return '<span class="text-gray-500">No areas for improvement listed</span>';
+                            })()}
+                        </ul>
+                    </div>
+
+                    <!-- Recommendations -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Recommendations</h3>
+                        <ul id="recommendations" class="mt-2 space-y-2">
+                            ${(() => {
+                                const recommendations = analysisData.analysis?.recommendations?.recommendations || [];
+                                if (recommendations.length > 0) {
+                                    return recommendations
+                                        .map(recommendation => `
+                                            <li class="flex items-start">
+                                                <span class="text-green-500 mr-2"><i class="fas fa-lightbulb"></i></span>
+                                                <span>${recommendation}</span>
+                                            </li>
+                                        `)
+                                        .join('');
+                                }
+                                return '<span class="text-gray-500">No recommendations available</span>';
+                            })()}
+                        </ul>
+                    </div>
+                `;
+                
+                // Add to analysis history in the DOM
+                const analysisHistory = document.getElementById('analysisHistory');
+                const historyItem = document.createElement('div');
+                historyItem.className = 'bg-gray-50 p-3 rounded border border-gray-200';
+                historyItem.innerHTML = `
+                    <div class="flex justify-between">
+                        <div>
+                            <h4 class="font-medium">${job.title}</h4>
+                            <p class="text-sm text-gray-600">${job.company}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${analysisData.matchScore || 0}% Match</span>
+                            <p class="text-xs text-gray-500 mt-1">${new Date().toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                `;
+                analysisHistory.prepend(historyItem);
+                
+                try {
+                    const cachedHistory = localStorage.getItem('analysisHistory');
+                    let analysisHistoryData = [];
+                    
+                    if (cachedHistory) {
+                        analysisHistoryData = JSON.parse(cachedHistory);
+                    }
+                    
+                    analysisHistoryData.unshift(analysisData);
+                    
+                    localStorage.setItem('analysisHistory', JSON.stringify(analysisHistoryData));
+                    console.log('Updated analysis history cache with new analysis');
+                } catch (cacheError) {
+                    console.error('Error updating analysis history cache:', cacheError);
+                }
+                
+            } catch (error) {
+                console.error('Error analyzing job:', error);
+                analysisResults.innerHTML = `
+                    <div class="bg-red-100 text-red-800 p-4 rounded">
+                        <p class="font-medium">Error analyzing job:</p>
+                        <p>${error.message || 'An unknown error occurred'}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function generateCoverLetter(job) {
+            try {
+                if (!user || !user.id) {
+                    alert('Please log in to generate a cover letter');
+                    return;
+                }
+
+                const coverLetterBtn = document.querySelector(`.generate-cover-letter-btn[data-job-id="${job.id}"]`);
+                const originalText = coverLetterBtn.textContent;
+                coverLetterBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Generating...';
+                coverLetterBtn.disabled = true;
+
+                const response = await fetch(`/api/jobs/generate-cover-letter/${user.id}/${job.id}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                const coverLetterContent = document.getElementById('coverLetterContent');
+                coverLetterContent.textContent = data.coverLetter;
+                
+                const modal = document.getElementById('coverLetterModal');
+                modal.classList.remove('hidden');
+                
+                coverLetterBtn.textContent = originalText;
+                coverLetterBtn.disabled = false;
+                
+                document.getElementById('closeCoverLetterModal').addEventListener('click', () => {
+                    document.getElementById('coverLetterModal').classList.add('hidden');
+                });
+                
+                document.getElementById('copyToClipboard').addEventListener('click', () => {
+                    navigator.clipboard.writeText(data.coverLetter)
+                        .then(() => {
+                            alert('Cover letter copied to clipboard!');
+                        })
+                        .catch(err => {
+                            console.error('Failed to copy text: ', err);
+                        });
+                });
+                
+                document.getElementById('downloadCoverLetter').addEventListener('click', () => {
+                    alert('PDF download functionality would be implemented here');
+                });
+                
+            } catch (error) {
+                console.error('Error generating cover letter:', error);
+                alert('Failed to generate cover letter. Please try again later.');
+                
+                const coverLetterBtn = document.querySelector(`.generate-cover-letter-btn[data-job-id="${job.id}"]`);
+                coverLetterBtn.textContent = 'Generate Cover Letter';
+                coverLetterBtn.disabled = false;
+            }
+        }
+
+        async function loadAnalysisHistory() {
+            try {
+                if (!user || !user.id) {
+                    console.log('User not logged in, cannot load analysis history');
+                    return;
+                }
+                
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    return;
+                }
+                
+                const cachedHistory = localStorage.getItem('analysisHistory');
+                if (cachedHistory) {
+                    try {
+                        const parsedHistory = JSON.parse(cachedHistory);
+                        renderAnalysisHistory(parsedHistory);
+                        console.log('Loaded analysis history from cache');
+                    } catch (e) {
+                        console.error('Error parsing cached history:', e);
+                        // Clear invalid cache
+                        localStorage.removeItem('analysisHistory');
+                    }
+                }
+                
+                const response = await fetch(`/api/jobs/analysis/history/${user.id}`, {
+                    headers: {
+                        'session-id': sessionId
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                localStorage.setItem('analysisHistory', JSON.stringify(data));
+                
+                renderAnalysisHistory(data);
+            } catch (error) {
+                console.error('Error loading analysis history:', error);
+                const analysisHistory = document.getElementById('analysisHistory');
+                analysisHistory.innerHTML = '<p class="text-red-500">Error loading analysis history. Please try again later.</p>';
+            }
+        }
+        
+        function renderAnalysisHistory(data) {
+            const analysisHistory = document.getElementById('analysisHistory');
+            analysisHistory.innerHTML = '';
+            
+            if (!data || data.length === 0) {
+                analysisHistory.innerHTML = '<p class="text-gray-500">No analysis history found. Analyze jobs to see your history here.</p>';
+                return;
+            }
+            
+            data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            
+            data.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'bg-gray-50 p-3 rounded border border-gray-200';
+                
+                const date = new Date(item.createdAt);
+                const formattedDate = date.toLocaleDateString();
+                
+                historyItem.innerHTML = `
+                    <div class="flex justify-between">
+                        <div>
+                            <h4 class="font-medium">${item.jobPosting?.title || 'Unknown Job'}</h4>
+                            <p class="text-sm text-gray-600">${item.jobPosting?.company || 'Unknown Company'}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${item.matchScore || 0}% Match</span>
+                            <p class="text-xs text-gray-500 mt-1">${formattedDate}</p>
+                        </div>
+                    </div>
+                `;
+                
+                historyItem.addEventListener('click', () => {
+                    console.log('View analysis details for:', item);
+                    
+                    const jobAnalysisModal = document.getElementById('jobAnalysisModal');
+                    const analysisResults = document.getElementById('analysisResults');
+                    jobAnalysisModal.classList.remove('hidden');
+                    
+                    document.getElementById('closeJobAnalysisModal').addEventListener('click', () => {
+                        jobAnalysisModal.classList.add('hidden');
+                    });
+                    
+                    analysisResults.innerHTML = `
+                        <!-- Match Score -->
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">Match Score</h3>
+                            <div class="mt-2 relative pt-1">
+                                <div class="flex mb-2 items-center justify-between">
+                                    <div>
+                                        <span id="matchScore"
+                                            class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-200">
+                                            ${item.matchScore || '0'}%
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-200">
+                                    <div id="matchScoreBar" style="width:${item.matchScore || 0}%"
+                                        class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Analysis Details -->
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">Analysis Details</h3>
+                            <div class="mt-4 p-4 bg-gray-50 rounded border border-gray-200">
+                                <p class="mb-2"><strong>Job:</strong> ${item.jobPosting?.title || 'Unknown'}</p>
+                                <p class="mb-2"><strong>Company:</strong> ${item.jobPosting?.company || 'Unknown'}</p>
+                                <p class="mb-2"><strong>Date Analyzed:</strong> ${new Date(item.createdAt).toLocaleString()}</p>
+                                <p class="mb-2"><strong>Match Score:</strong> ${item.matchScore || '0'}%</p>
+                            </div>
+                        </div>
+
+                        <!-- Analysis Breakdown -->
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">Analysis Breakdown</h3>
+                            <div class="mt-2 space-y-2">
+                                <pre class="text-sm p-4 bg-gray-50 rounded border border-gray-200 overflow-auto max-h-60">${
+                                    JSON.stringify(item.analysis, null, 2)
+                                }</pre>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                analysisHistory.appendChild(historyItem);
+            });
+        }
+
+        (async function init() {
+            try {
+                console.log('Initializing application...');
+                user = await getUser();
+
+                if (user) {
+                    console.log('User data received:', user);
+                    console.log('User ID:', user.id);
+                    const jobs = await loadRelevantJobs(user.id);
+                    console.log('Jobs loaded:', jobs ? jobs.length : 0);
+                    
+                    await loadAnalysisHistory();
+                    
+                    document.addEventListener('visibilitychange', function() {
+                        if (document.visibilityState === 'visible' && user && user.id) {
+                            loadAnalysisHistory();
+                        }
+                    });
+                    
+                    setInterval(async function() {
+                        if (user && user.id) {
+                            const sessionId = localStorage.getItem('sessionId');
+                            if (!sessionId) {
+                                location.reload();
+                                return;
+                            }
+                            
+                            try {
+                                const response = await fetch('/api/user/session/validate', {
+                                    headers: {
+                                        'session-id': sessionId
+                                    }
+                                });
+                                
+                                if (!response.ok) {
+                                    localStorage.removeItem('sessionId');
+                                    location.reload();
+                                }
+                            } catch (error) {
+                                console.error('Session validation error:', error);
+                            }
+                        }
+                    }, 60000);
+                } else {
+                    console.warn('No user data received, application may not function correctly');
+                }
+            } catch (error) {
+                console.error('Error initializing application:', error);
+            }
+        })();
+    </script>
+</body>
+
+</html>

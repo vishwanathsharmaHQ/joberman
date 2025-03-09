@@ -1,0 +1,486 @@
+{
+  "info": {
+    "name": "Joberman API",
+    "description": "API collection for the Joberman application - a modern job application tracking and resume parsing service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "description": "Authentication related endpoints",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"user_name\"\n}"
+            },
+            "description": "Login with a user name to receive an authentication token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "description": "User profile and session management",
+      "item": [
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "profile"]
+            },
+            "description": "Get the authenticated user's profile information"
+          }
+        },
+        {
+          "name": "Validate Session",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/session/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "session", "validate"]
+            },
+            "description": "Validate the current user session and token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Resume",
+      "description": "Resume upload and parsing endpoints",
+      "item": [
+        {
+          "name": "Upload Resume",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/resume/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resume", "upload"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "resume",
+                  "type": "file",
+                  "src": "/path/to/your/resume.pdf",
+                  "description": "PDF file only, max 10MB"
+                }
+              ]
+            },
+            "description": "Upload and parse a PDF resume"
+          }
+        },
+        {
+          "name": "Enhance Resume",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/resume/enhance/:userId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resume", "enhance", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "123",
+                  "description": "ID of the user whose resume should be enhanced"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobDescription\": \"Job description text to tailor resume to\",\n  \"enhancementType\": \"skills\"\n}"
+            },
+            "description": "Enhance a user's resume using AI, optionally tailored to a specific job"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "description": "Job posting and analysis endpoints",
+      "item": [
+        {
+          "name": "Add Job Posting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/postings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "postings"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Software Engineer\",\n  \"company\": \"Example Corp\",\n  \"description\": \"Job description text\",\n  \"location\": \"Remote\",\n  \"salary\": \"$100,000 - $120,000\",\n  \"postedDate\": \"2023-03-08\",\n  \"url\": \"https://example.com/job\"\n}"
+            },
+            "description": "Add a new job posting to the system"
+          }
+        },
+        {
+          "name": "Get Job Posting",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/postings/:jobPostingId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "postings", ":jobPostingId"],
+              "variable": [
+                {
+                  "key": "jobPostingId",
+                  "value": "123",
+                  "description": "ID of the job posting to retrieve"
+                }
+              ]
+            },
+            "description": "Get details of a specific job posting"
+          }
+        },
+        {
+          "name": "Get Relevant Jobs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/relevant/:userId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "relevant", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "123",
+                  "description": "ID of the user to get relevant jobs for"
+                }
+              ]
+            },
+            "description": "Get job postings relevant to a specific user's skills and experience"
+          }
+        },
+        {
+          "name": "Analyze Job Match",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/analyze/:userId/:jobPostingId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "analyze", ":userId", ":jobPostingId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "123",
+                  "description": "ID of the user"
+                },
+                {
+                  "key": "jobPostingId",
+                  "value": "456",
+                  "description": "ID of the job posting to analyze"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"includeResumeData\": true\n}"
+            },
+            "description": "Analyze how well a user's profile matches a specific job posting"
+          }
+        },
+        {
+          "name": "Get Job Analysis History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/analysis/history/:userId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "analysis", "history", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "123",
+                  "description": "ID of the user to get analysis history for"
+                }
+              ]
+            },
+            "description": "Get the history of job analysis results for a specific user"
+          }
+        },
+        {
+          "name": "Get Job Analysis",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/analysis/:analysisId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "analysis", ":analysisId"],
+              "variable": [
+                {
+                  "key": "analysisId",
+                  "value": "789",
+                  "description": "ID of the analysis to retrieve"
+                }
+              ]
+            },
+            "description": "Get a specific job analysis result"
+          }
+        },
+        {
+          "name": "Fetch Jobs from API",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/fetch-from-api",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "fetch-from-api"]
+            },
+            "description": "Fetch jobs from external API and store them in the database"
+          }
+        },
+        {
+          "name": "Generate Cover Letter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/generate-cover-letter/:userId/:jobPostingId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "generate-cover-letter", ":userId", ":jobPostingId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "123",
+                  "description": "ID of the user"
+                },
+                {
+                  "key": "jobPostingId",
+                  "value": "456",
+                  "description": "ID of the job posting to generate cover letter for"
+                }
+              ]
+            },
+            "description": "Generate a cover letter for a specific job using AI"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "description": "Chat session management endpoints",
+      "item": [
+        {
+          "name": "Initialize Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "start"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"123\",\n  \"chatType\": \"career_advice\"\n}"
+            },
+            "description": "Initialize a new chat session"
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/message",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "message"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"session_id\",\n  \"message\": \"How can I improve my resume?\",\n  \"userId\": \"123\"\n}"
+            },
+            "description": "Send a message in a chat session"
+          }
+        },
+        {
+          "name": "Get Chat History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/history/:sessionId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "history", ":sessionId"],
+              "variable": [
+                {
+                  "key": "sessionId",
+                  "value": "session_id",
+                  "description": "ID of the chat session"
+                }
+              ]
+            },
+            "description": "Get the message history for a specific chat session"
+          }
+        },
+        {
+          "name": "Update Chat Context",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/context",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "context"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"session_id\",\n  \"context\": {\n    \"resumeData\": {},\n    \"jobPostingId\": \"456\"\n  }\n}"
+            },
+            "description": "Update the context for a chat session"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "your_jwt_token_here",
+      "type": "string"
+    }
+  ]
+} 

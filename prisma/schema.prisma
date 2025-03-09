@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model to store parsed resume data
+model User {
+  id               Int      @id @default(autoincrement())
+  fullName         String?
+  firstName        String?
+  lastName         String?
+  email            String?  @unique
+  headline         String?
+  location         String?
+  about            String?
+  profilePhoto     String?
+  linkedinId       String?  @map("linkedin_internal_id")
+  publicIdentifier String?  @map("public_identifier")
+  experience       Json?    // Storing the experience array as JSON
+  education        Json?    // Storing the education array as JSON
+  skills           Json?    // Storing the skills array as JSON
+  
+  // Fields for original resume data
+  originalHeadline     String?
+  originalAbout        String?
+  originalExperience   Json?
+  originalEducation    Json?
+  originalSkills       Json?
+  
+  // Enhancement reasons
+  headlineEnhancementReason    String?
+  aboutEnhancementReason       String?
+  experienceEnhancementReason  Json?    // Storing as JSON to handle detailed reasons per entry
+  educationEnhancementReason   Json?    // Storing as JSON to handle detailed reasons per entry
+  skillsEnhancementReason      Json?    // Storing as JSON to handle detailed reasons per entry
+  
+  // Enhancement tracking
+  enhanced         Boolean  @default(false)
+  enhancedAt       DateTime?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Add relation to ChatSession
+  chatSessions     ChatSession[]
+
+  // Add relation to JobAnalysis
+  jobAnalyses      JobAnalysis[]
+
+  @@map("users")
+}
+
+// Chat related models
+model ChatSession {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  messages    Message[]
+  context     Json?     // Stores session context and goals
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("chat_sessions")
+}
+
+model Message {
+  id            Int         @id @default(autoincrement())
+  sessionId     Int
+  session       ChatSession @relation(fields: [sessionId], references: [id])
+  role          String      // 'user' or 'assistant'
+  content       String      @db.Text
+  createdAt     DateTime    @default(now())
+
+  @@map("messages")
+}
+
+// Job related models
+model JobPosting {
+  id                     Int           @id @default(autoincrement())
+  title                  String
+  company                String        // organization in API
+  description            String?       @db.Text
+  url                    String?
+  location               String?
+  analyzedData           Json?         // Stores the structured analysis of the job posting
+  
+  // New fields from LinkedIn API
+  apiId                  String?       // id from API, different from our internal ID
+  datePosted             DateTime?
+  dateCreated            DateTime?
+  organizationUrl        String?
+  dateValidThrough       DateTime?
+  locationsRaw           Json?         // Storing the locations_raw array as JSON
+  locationType           String?
+  locationRequirements   Json?         // Storing the location_requirements_raw as JSON
+  salary                 Json?         // Storing the salary_raw as JSON
+  employmentType         Json?         // Storing the employment_type array as JSON
+  sourceType             String?
+  source                 String?
+  sourceDomain           String?
+  organizationLogo       String?
+  citiesDerived          Json?         // Array of cities
+  regionsDerived         Json?         // Array of regions
+  countriesDerived       Json?         // Array of countries
+  locationsDerived       Json?         // Array of locations
+  timezonesDerived       Json?         // Array of timezones
+  latsDerived            Json?         // Array of latitudes
+  lngsDerived            Json?         // Array of longitudes
+  remoteDerived          Boolean?
+  linkedinOrgInfo        Json?         // All LinkedIn organization data stored as JSON
+  
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  analyses               JobAnalysis[]
+
+  @@map("job_postings")
+  @@index([apiId])
+}
+
+model JobAnalysis {
+  id            Int         @id @default(autoincrement())
+  userId        Int
+  user          User        @relation(fields: [userId], references: [id])
+  jobPostingId  Int
+  jobPosting    JobPosting  @relation(fields: [jobPostingId], references: [id])
+  matchScore    Int         // 0-100 score
+  analysis      Json        // Detailed analysis and recommendations
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("job_analyses")
+  @@unique([userId, jobPostingId], name: "userId_jobPostingId")
+}

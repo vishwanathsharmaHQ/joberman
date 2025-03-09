@@ -1,0 +1,36 @@
+{
+  "name": "find-job",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start": "npm run build && nodemon dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/multer": "^1.4.12",
+    "@types/pg": "^8.11.11",
+    "drizzle-kit": "^0.30.5",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@mistralai/mistralai": "^1.5.1",
+    "@neondatabase/serverless": "^0.10.4",
+    "@prisma/client": "^6.4.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemon": "^3.1.9",
+    "openai": "^4.86.2",
+    "pdf-parse": "^1.1.1",
+    "pg": "^8.13.3",
+    "pg-pool": "^3.7.1",
+    "prisma": "^6.4.1"
+  }
+}

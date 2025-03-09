@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Resume</title>
+  <script src="/components/navbar.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .file-upload {
+      background-color: white;
+      border: 2px dashed #4CAF50;
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      margin: 20px 0;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .file-upload:hover {
+      border-color: #45a049;
+      background-color: #f0f9f0;
+    }
+    #file-name {
+      margin-top: 10px;
+      font-weight: bold;
+      color: #4CAF50;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 20px;
+      font-size: 16px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 8px;
+      display: none;
+    }
+    .result.success {
+      background-color: #e8f5e9;
+      border: 1px solid #c8e6c9;
+      color: #2e7d32;
+    }
+    .result.error {
+      background-color: #ffebee;
+      border: 1px solid #ffcdd2;
+      color: #c62828;
+    }
+    .loader {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #4CAF50;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 2s linear infinite;
+      margin: 20px auto;
+      display: none;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <nav-bar></nav-bar>
+  
+  <div class="container">
+    <h1>Upload Your Resume</h1>
+    
+    <div class="file-upload" id="file-upload">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="12" y1="18" x2="12" y2="12"></line>
+        <line x1="9" y1="15" x2="15" y2="15"></line>
+      </svg>
+      <p>Click to browse or drag and drop your resume here</p>
+      <p><small>PDF files only, max 10MB</small></p>
+      <input type="file" id="resume" accept="application/pdf" />
+      <div id="file-name"></div>
+    </div>
+    
+    <button id="upload-btn" disabled>Upload Resume</button>
+    
+    <div class="loader" id="loader"></div>
+    
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // File upload
+      const fileUpload = document.getElementById('file-upload');
+      const fileInput = document.getElementById('resume');
+      const fileName = document.getElementById('file-name');
+      const uploadBtn = document.getElementById('upload-btn');
+      const loader = document.getElementById('loader');
+      const result = document.getElementById('result');
+      
+      fileUpload.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files && fileInput.files.length > 0) {
+          const file = fileInput.files[0];
+          
+          if (file.type !== 'application/pdf') {
+            alert('Please upload a PDF file');
+            return;
+          }
+          
+          if (file.size > 10 * 1024 * 1024) { // 10MB
+            alert('File size exceeds 10MB limit');
+            return;
+          }
+          
+          fileName.textContent = file.name;
+          uploadBtn.disabled = false;
+        }
+      });
+      
+      // Drag and drop
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        fileUpload.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+      });
+      
+      ['dragenter', 'dragover'].forEach(eventName => {
+        fileUpload.addEventListener(eventName, () => {
+          fileUpload.style.borderColor = '#4CAF50';
+          fileUpload.style.backgroundColor = '#f9f9f9';
+        });
+      });
+      
+      ['dragleave', 'drop'].forEach(eventName => {
+        fileUpload.addEventListener(eventName, () => {
+          fileUpload.style.borderColor = '#ddd';
+          fileUpload.style.backgroundColor = '';
+        });
+      });
+      
+      fileUpload.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files[0];
+        
+        if (!file || file.type !== 'application/pdf') {
+          alert('Please upload a PDF file');
+          return;
+        }
+        
+        if (file.size > 10 * 1024 * 1024) { // 10MB
+          alert('File size exceeds 10MB limit');
+          return;
+        }
+        
+        // Set the file to the input element
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+        
+        fileName.textContent = file.name;
+        uploadBtn.disabled = false;
+      });
+      
+      // Upload functionality
+      uploadBtn.addEventListener('click', async () => {
+        if (!fileInput.files || fileInput.files.length === 0) {
+          alert('Please select a PDF file');
+          return;
+        }
+        
+        // Show loader
+        loader.style.display = 'block';
+        result.style.display = 'none';
+        uploadBtn.disabled = true;
+        
+        const formData = new FormData();
+        formData.append('resume', fileInput.files[0]);
+        
+        try {
+          const response = await fetch('/api/resume/upload', {
+            method: 'POST',
+            body: formData
+          });
+          
+          const data = await response.json();
+          
+          // Hide loader
+          loader.style.display = 'none';
+          
+          if (response.ok) {
+            result.style.display = 'block';
+            result.innerHTML = `
+              <h3>Resume Uploaded Successfully!</h3>
+              <p>Your resume has been parsed and your profile data has been stored in our database.</p>
+              <p>Please <a href="/login.html">log in</a> with your name to access your profile.</p>
+            `;
+            
+            // Reset form
+            fileInput.value = '';
+            fileName.textContent = '';
+            uploadBtn.disabled = true;
+          } else {
+            result.style.display = 'block';
+            result.innerHTML = `
+              <h3>Error</h3>
+              <p>${data.message || 'Failed to upload resume'}</p>
+            `;
+            uploadBtn.disabled = false;
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          loader.style.display = 'none';
+          result.style.display = 'block';
+          result.innerHTML = `
+            <h3>Error</h3>
+            <p>An unexpected error occurred. Please try again later.</p>
+          `;
+          uploadBtn.disabled = false;
+        }
+      });
+    });
+  </script>
+</body>
+</html> 
