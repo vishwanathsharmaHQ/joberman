@@ -19,6 +19,7 @@ app.use(express.json());
 // Serve static files from public directory
 app.use(express.static(path.join(process.cwd(), 'public')));
 
+
 // Define routes
 app.get("/", (req, res) => {
   res.send("Hello World");
